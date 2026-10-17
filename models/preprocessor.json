@@ -1,0 +1,40 @@
+{
+  "medians": {
+    "RevolvingUtilizationOfUnsecuredLines": 0.15451689200000002,
+    "age": 52.0,
+    "NumberOfTime30-59DaysPastDueNotWorse": 0.0,
+    "DebtRatio": 0.36764335800000003,
+    "MonthlyIncome": 5400.0,
+    "NumberOfOpenCreditLinesAndLoans": 8.0,
+    "NumberOfTimes90DaysLate": 0.0,
+    "NumberRealEstateLoansOrLines": 1.0,
+    "NumberOfTime60-89DaysPastDueNotWorse": 0.0,
+    "NumberOfDependents": 0.0,
+    "MonthlyIncomeMissing": 0.0,
+    "NumberOfDependentsMissing": 0.0,
+    "NumberOfTime30-59DaysPastDueNotWorseInvalidFlag": 0.0,
+    "NumberOfTime60-89DaysPastDueNotWorseInvalidFlag": 0.0,
+    "NumberOfTimes90DaysLateInvalidFlag": 0.0
+  },
+  "feature_columns": [
+    "RevolvingUtilizationOfUnsecuredLines",
+    "age",
+    "NumberOfTime30-59DaysPastDueNotWorse",
+    "DebtRatio",
+    "MonthlyIncome",
+    "NumberOfOpenCreditLinesAndLoans",
+    "NumberOfTimes90DaysLate",
+    "NumberRealEstateLoansOrLines",
+    "NumberOfTime60-89DaysPastDueNotWorse",
+    "NumberOfDependents",
+    "MonthlyIncomeMissing",
+    "NumberOfDependentsMissing",
+    "NumberOfTime30-59DaysPastDueNotWorseInvalidFlag",
+    "NumberOfTime60-89DaysPastDueNotWorseInvalidFlag",
+    "NumberOfTimes90DaysLateInvalidFlag",
+    "TotalMonthlyDebt",
+    "IncomePerDependentAdjusted",
+    "TotalDelinquencies",
+    "RealEstateToTotalCredit"
+  ]
+}
