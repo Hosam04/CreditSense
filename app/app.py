@@ -1,8 +1,3 @@
-"""CreditSense - Credit Risk Assessment (Streamlit UI).
-
-Run from the project root:
-    streamlit run app/app.py
-"""
 import json
 import sys
 import warnings
@@ -22,20 +17,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from notebooks.preprocessing import CreditPreprocessor  # noqa: E402
+from xgboost import XGBClassifier  # noqa: E402
 
-# Decision thresholds tuned for F1 on the positive class (see README -> Results)
-MODEL_CONFIG = {
-    "XGBoost (best ROC-AUC 0.86)": {"file": "xgb_credit_model.pkl", "threshold": 0.772},
-    "Random Forest (validation pick)": {"file": "best_credit_model.pkl", "threshold": None},
-}
-# Random Forest threshold lives in threshold.json
-_thr_file = MODELS_DIR / "threshold.json"
-if _thr_file.exists():
-    MODEL_CONFIG["Random Forest (validation pick)"]["threshold"] = json.loads(
-        _thr_file.read_text()
-    )["threshold"]
-else:
-    MODEL_CONFIG["Random Forest (validation pick)"]["threshold"] = 0.31
+# Artifacts written by notebooks/Modeling_and_Evaluation.ipynb
+MODEL_FILE = MODELS_DIR / "xgb.json"
+CALIBRATOR_FILE = MODELS_DIR / "calibrator.pkl"
+THRESHOLD_FILE = MODELS_DIR / "threshold.json"
+PREPROCESSOR_FILE = MODELS_DIR / "preprocessor.json"
 
 st.set_page_config(page_title="CreditSense - Credit Risk Assessment", page_icon="💳", layout="wide")
 
@@ -43,17 +31,24 @@ st.set_page_config(page_title="CreditSense - Credit Risk Assessment", page_icon=
 # ---- Cached loaders ----
 @st.cache_resource
 def load_preprocessor():
-    return CreditPreprocessor.load(MODELS_DIR / "preprocessor.json")
+    return CreditPreprocessor.load(PREPROCESSOR_FILE)
 
 
 @st.cache_resource
-def load_scaler():
-    return joblib.load(MODELS_DIR / "scaler.pkl")
+def load_model():
+    model = XGBClassifier()
+    model.load_model(MODEL_FILE)
+    return model
 
 
 @st.cache_resource
-def load_model(filename: str):
-    return joblib.load(MODELS_DIR / filename)
+def load_calibrator():
+    return joblib.load(CALIBRATOR_FILE)
+
+
+@st.cache_data
+def load_config():
+    return json.loads(THRESHOLD_FILE.read_text())
 
 
 def build_raw_row(v: dict) -> pd.DataFrame:
@@ -68,25 +63,37 @@ st.write(
     "the next two years**, based on the *Give Me Some Credit* dataset."
 )
 
-# ---- Sidebar: model choice ----
-with st.sidebar:
-    st.header("⚙️ Model")
-    model_name = st.selectbox("Choose model", list(MODEL_CONFIG))
-    cfg = MODEL_CONFIG[model_name]
-    st.caption(f"Decision threshold: **{cfg['threshold']}**")
-    st.caption(
-        "A borrower is flagged *High Risk* when the predicted probability is at or "
-        "above the threshold (tuned to maximize F1 on defaulters)."
-    )
-
 # ---- Load artifacts ----
 try:
     pre = load_preprocessor()
-    scaler = load_scaler()
-    model = load_model(cfg["file"])
+    model = load_model()
+    calibrator = load_calibrator()
+    cfg = load_config()
 except Exception as e:
-    st.error(f"❌ Could not load model files from `{MODELS_DIR}`: {e}")
+    st.error(
+        f"❌ Could not load model files from `{MODELS_DIR}`: {e}\n\n"
+        "Run `notebooks/Modeling_and_Evaluation.ipynb` first to create "
+        "`xgb.json`, `calibrator.pkl` and `threshold.json`."
+    )
     st.stop()
+
+# ---- Sidebar: decision rule ----
+with st.sidebar:
+    st.header("⚙️ Model")
+    st.caption(f"{cfg['model']} ({cfg['n_trees']} trees)")
+    rule = st.radio(
+        "Decision threshold",
+        ["Cost-based", "F1-based"],
+        help="Cost-based: minimizes expected loss "
+             f"(missed default costs {cfg['cost_fn']:g}x a wrongly flagged good customer). "
+             "F1-based: balances precision and recall on defaulters.",
+    )
+    threshold = cfg["threshold_cost"] if rule == "Cost-based" else cfg["threshold_f1"]
+    st.caption(f"Threshold: **{threshold:.3f}**")
+    st.caption(
+        "A borrower is flagged *High Risk* when the calibrated probability is at or "
+        "above the threshold."
+    )
 
 # ---- Inputs ----
 st.subheader("📊 Borrower details")
@@ -171,14 +178,13 @@ if st.button("Evaluate Credit Risk", type="primary"):
     })
 
     try:
-        features = pre.transform(raw)                       # clean + impute + engineer
-        scaled = scaler.transform(features)                 # same scaling as training
-        proba = float(model.predict_proba(scaled)[0, 1])    # P(default)
+        features = pre.transform(raw)[cfg["feature_columns"]]       # clean + impute + engineer
+        score = model.predict_proba(features)[:, 1]                 # raw model score (no scaler)
+        proba = float(np.clip(calibrator.predict(score)[0], 0.001, 0.99))  # calibrated P(default)
     except Exception as e:
         st.error(f"⚠️ Prediction failed: {e}")
         st.stop()
 
-    threshold = cfg["threshold"]
     st.markdown("---")
     st.subheader("🎯 Result")
 
@@ -193,8 +199,9 @@ if st.button("Evaluate Credit Risk", type="primary"):
         st.success("✅ **Low Risk** — the probability is below the decision threshold.")
 
     st.caption(
-        "Base rate in the training data is ~6.6%, so even a probability of 15–20% is "
-        "well above average. This is a demo model, not a lending decision."
+        "The probability is calibrated: among borrowers with a similar score, about this share "
+        "defaulted in held-out data. The base rate is ~6.6%, so 15–20% is already well above "
+        "average. This is a demo model, not a lending decision."
     )
 
     with st.expander("See the features sent to the model"):

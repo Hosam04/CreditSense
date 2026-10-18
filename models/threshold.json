@@ -1,1 +1,30 @@
-{"model": "Random Forest", "threshold": 0.31}
+{
+  "model": "XGBoost + isotonic calibration",
+  "threshold": 0.16180602006688963,
+  "threshold_f1": 0.23076923076923078,
+  "threshold_cost": 0.16180602006688963,
+  "cost_fn": 5.0,
+  "cost_fp": 1.0,
+  "n_trees": 259,
+  "feature_columns": [
+    "RevolvingUtilizationOfUnsecuredLines",
+    "age",
+    "NumberOfTime30-59DaysPastDueNotWorse",
+    "DebtRatio",
+    "MonthlyIncome",
+    "NumberOfOpenCreditLinesAndLoans",
+    "NumberOfTimes90DaysLate",
+    "NumberRealEstateLoansOrLines",
+    "NumberOfTime60-89DaysPastDueNotWorse",
+    "NumberOfDependents",
+    "MonthlyIncomeMissing",
+    "NumberOfDependentsMissing",
+    "NumberOfTime30-59DaysPastDueNotWorseInvalidFlag",
+    "NumberOfTime60-89DaysPastDueNotWorseInvalidFlag",
+    "NumberOfTimes90DaysLateInvalidFlag",
+    "TotalMonthlyDebt",
+    "IncomePerDependentAdjusted",
+    "TotalDelinquencies",
+    "RealEstateToTotalCredit"
+  ]
+}

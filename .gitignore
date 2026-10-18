@@ -20,11 +20,11 @@ dist/
 .DS_Store
 Thumbs.db
 
-# ---- Large model file (~87 MB, close to GitHub's 100 MB limit) ----
-# Uncomment the next line to keep it out of the repo,
-# or track it with Git LFS instead: git lfs track "*.pkl"
-# models/best_credit_model.pkl
+# ---- Model artifacts (optional: uncomment if you prefer not to commit them) ----
+# models/xgb.json
+# models/calibrator.pkl
 
-# ---- Kaggle credentials (never commit these) ----
+# ---- Secrets / credentials (never commit these) ----
 kaggle.json
 .env
+*.pem
